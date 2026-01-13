@@ -1,27 +1,47 @@
+
 import { Link } from "react-router-dom";
-import products from "../assets/data/products.json";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const items = products;
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
 
-  // Featured: first 4 items (simple + predictable for practice)
-  const featured = items.slice(0, 4);
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("https://api.escuelajs.co/api/v1/products");
+        const data = await res.json();
+        setProducts(data.slice(0, 12)); // show first 12 products
+      } catch (error) {
+        console.error("Failed to fetch products", error);
+      }
+    };
+    fetchProducts();
+  }, []);
 
-  // Categories: unique by category.id
-  const categories = Array.from(
-    new Map(items.map((p) => [p.category.id, p.category])).values()
-  );
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("https://api.escuelajs.co/api/v1/categories");
+        const data = await res.json();
+        setCategories(data.slice(0, 4)); // show first 4 categories
+      } catch (error) {
+        console.error("Failed to fetch categories", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
-  // Latest: sort by creationAt desc, take 4
-  const latest = [...items]
-    .sort(
-      (a, b) =>
-        new Date(b.creationAt).getTime() - new Date(a.creationAt).getTime()
-    )
-    .slice(0, 4);
+  // Derived data
+  const featured = products.slice(0, 4); // first 4 products
+  const latest = [...products]
+    .sort((a, b) => new Date(b.creationAt) - new Date(a.creationAt))
+    .slice(0, 4); // latest 4 products
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-4 md:px-6 lg:px-8">
       <div className="space-y-8">
         {/* Hero Section */}
         <section className="rounded-2xl border bg-white p-5">
@@ -49,7 +69,7 @@ export default function Home() {
         </section>
 
         {/* Featured Products */}
-        <section className="space-y-3">
+        <section className="space-y-3 w-full">
           <div className="flex items-end justify-between">
             <h2 className="text-lg font-semibold">Featured products</h2>
             <Link to="/products" className="text-sm text-slate-700 underline">
@@ -57,35 +77,38 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="space-y-3 gap-4">
+          {/* Responsive grid: 1 column sm, 2 md, 3 lg */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {featured.map((p) => (
               <Link
                 key={p.id}
                 to={`/products/${p.id}`}
-                className="block rounded-2xl border bg-white p-4 hover:shadow-sm transition"
+                className="group flex w-full flex-col overflow-hidden rounded-2xl border bg-white transition hover:shadow-md"
               >
-                <div className="flex gap-3">
+                <div className="relative w-full overflow-hidden flex-shrink-0">
                   <img
                     src={p.images?.[0] ?? "https://placehold.co/600x400"}
                     alt={p.title}
-                    className="h-20 w-20 shrink-0 rounded-xl object-cover"
                     loading="lazy"
+                    className="h-52 w-full object-cover transition-transform duration-500 ease-out group-hover:scale-125"
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate font-medium">{p.title}</div>
-                        <div className="truncate text-xs text-slate-600">
-                          {p.category?.name}
-                        </div>
-                      </div>
-                      <div className="shrink-0 font-semibold">${p.price}</div>
+                </div>
+
+                <div className="flex flex-1 flex-col gap-2 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-medium">{p.title}</h3>
+                      <p className="truncate text-xs text-slate-600">
+                        {p.category?.name}
+                      </p>
                     </div>
 
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                      {p.description}
-                    </p>
+                    <div className="shrink-0 font-semibold">${p.price}</div>
                   </div>
+
+                  <p className="line-clamp-2 text-sm text-slate-600">
+                    {p.description}
+                  </p>
                 </div>
               </Link>
             ))}
@@ -96,19 +119,20 @@ export default function Home() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Categories</h2>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {categories.map((c) => (
               <Link
                 key={c.id}
-                to="/products"
-                className="flex items-center gap-3 rounded-2xl border bg-white p-4 hover:bg-slate-50 transition"
+                to={`/products?category=${c.id}`}
+                className="flex items-center gap-3 rounded-2xl border bg-white p-4 transition hover:bg-slate-50"
               >
                 <img
-                  src={c.image}
+                  src={c.image ?? "https://placehold.co/100"}
                   alt={c.name}
                   className="h-12 w-12 rounded-xl object-cover"
                   loading="lazy"
                 />
+
                 <div className="min-w-0">
                   <div className="truncate font-medium">{c.name}</div>
                   <div className="text-xs text-slate-600">Tap to browse</div>
@@ -127,12 +151,12 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {latest.map((p) => (
               <Link
                 key={p.id}
                 to={`/products/${p.id}`}
-                className="block rounded-2xl border bg-white p-4 hover:shadow-sm transition"
+                className="block rounded-2xl border bg-white p-4 transition hover:shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <img
@@ -141,6 +165,7 @@ export default function Home() {
                     className="h-14 w-14 rounded-xl object-cover"
                     loading="lazy"
                   />
+
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="truncate font-medium">{p.title}</div>
